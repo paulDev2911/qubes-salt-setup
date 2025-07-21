@@ -1,36 +1,36 @@
+{% if grains['id'] == 'dom0' %}
 # Clone template for system qubes
-debian-12-minimal-sys:
+debian-12-minimal-sys-clone:
   qvm.clone:
-    - source: debian-12-minimal
-    - label: black
-
-# Start template for configuration
-debian-12-minimal-sys-start:
-  qvm.start:
     - name: debian-12-minimal-sys
-    - require:
-      - qvm: debian-12-minimal-sys
+    - source: debian-12-minimal
 
-# Ensure template is updated
+# Configure passwordless sudo in the template
+debian-12-minimal-sys-configure-passwordless-sudo:
+  cmd.run:
+    - name: |
+        qvm-run -u root debian-12-minimal-sys 'echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/qubes && chmod 440 /etc/sudoers.d/qubes'
+    - require:
+      - qvm: debian-12-minimal-sys-clone
+
+# Update template packages
 debian-12-minimal-sys-update:
   cmd.run:
-    - name: qvm-run -u root debian-12-minimal-sys 'apt update && apt upgrade -y'
+    - name: qvm-run -u root debian-12-minimal-sys 'apt-get update'
     - require:
-      - qvm: debian-12-minimal-sys-start
+      - cmd: debian-12-minimal-sys-configure-passwordless-sudo
 
-# Install only essential packages for sys-qubes
+# Install essential packages for sys-qubes
 debian-12-minimal-sys-packages:
   cmd.run:
     - name: |
-        qvm-run -u root debian-12-minimal-sys '
-        apt install -y \
+        qvm-run -u root debian-12-minimal-sys 'apt install -y \
           qubes-core-agent-networking \
           qubes-core-agent-network-manager \
           iptables \
           nftables \
           iproute2 \
-          systemd-resolved
-        '
+          systemd-resolved'
     - require:
       - cmd: debian-12-minimal-sys-update
 
@@ -50,3 +50,5 @@ debian-12-minimal-sys-shutdown:
     - name: debian-12-minimal-sys
     - require:
       - qvm: debian-12-minimal-sys-properties
+
+{% endif %}
