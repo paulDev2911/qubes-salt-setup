@@ -45,6 +45,7 @@ install-vault-packages:
       - pinentry-gtk2
       - xclip
       - pwgen
+      - xfce4-terminal
     - require:
       - cmd: update-packages
 
