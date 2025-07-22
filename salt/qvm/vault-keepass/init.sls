@@ -1,15 +1,15 @@
 {% if grains['id'] == 'dom0' %}
 # Create browsing qvm on fedora-41-xfce-personal template
-create-personal-browser-qvm:
+create-vault-keepass-qvm:
     qvm.vm:
-        - name: personal-browser
+        - name: vault-keepass
         - present:
-            - template: fedora-41-xfce-personal
-            - label: blue
+            - template: debian-12-minimal-vault
+            - label: black
         - prefs:
-            - memory: 1024
-            - maxmem: 2048
-            - netvm: sys-firewall
+            - memory: 384
+            - maxmem: 768
+            - netvm: none
             - vcpus: 1
             - include_in_backups: false
             - autostart: false
@@ -19,5 +19,5 @@ create-personal-browser-qvm:
             - shutdown_timeout: 60
         - features:
             - set:
-                - menu-items: brave-browser.desktop
+                - menu-items: org.keepassxc.KeePassXC.desktop
 {% endif %}
