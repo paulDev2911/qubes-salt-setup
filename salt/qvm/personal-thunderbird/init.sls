@@ -1,15 +1,15 @@
 {% if grains['id'] == 'dom0' %}
-# Create keepass qvm on debian-12-minimal-vault template
-create-vault-keepass-qvm:
+# Create email qvm on fedora-41-xfce-personal template
+create-personal-thunderbird-qvm:
     qvm.vm:
-        - name: vault-keepass
+        - name: personal-thunderbird
         - present:
-            - template: debian-12-minimal-vault
-            - label: black
+            - template: fedora-41-xfce-personal
+            - label: blue
         - prefs:
-            - memory: 384
-            - maxmem: 768
-            - netvm: none
+            - memory: 1024
+            - maxmem: 2048
+            - netvm: sys-firewall
             - vcpus: 1
             - include_in_backups: false
             - autostart: false
@@ -19,5 +19,5 @@ create-vault-keepass-qvm:
             - shutdown_timeout: 60
         - features:
             - set:
-                - menu-items: org.keepassxc.KeePassXC.desktop
+                - menu-items: brave-browser.desktop thunderbird.desktop
 {% endif %}
