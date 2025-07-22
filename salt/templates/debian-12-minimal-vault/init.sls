@@ -1,40 +1,9 @@
-{% if grains['id'] == 'dom0'%}
+{% if grains['id'] == 'dom0' %}
 # Clone template for vault qubes
 debian-12-minimal-vault-clone:
   qvm.clone:
     - name: debian-12-minimal-vault
     - source: debian-12-minimal
-
-# Configure passwordless sudo in the template
-debian-12-minimal-vault-configure-passwordless-sudo:
-  cmd.run:
-    - name: |
-        qvm-run -u root debian-12-minimal-vault 'echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/qubes && chmod 440 /etc/sudoers.d/qubes'
-    - require:
-      - qvm: debian-12-minimal-vault-clone
-
-# Update template packages
-debian-12-minimal-vault-update:
-  cmd.run:
-    - name: qvm-run -u root debian-12-minimal-vault 'apt-get update'
-    - require:
-      - cmd: debian-12-minimal-vault-configure-passwordless-sudo
-
-# Install essential packages for vault-qubes
-debian-12-minimal-vault-packages:
-  cmd.run:
-    - name: |
-        qvm-run -u root debian-12-minimal-vault '
-        apt install -y \
-          keepassxc \
-          gnupg2 \
-          qubes-gpg-split \
-          pinentry-gtk2 \
-          xclip \
-          pwgen
-        '
-    - require:
-        - cmd: debian-12-minimal-vault-update
 
 # Configure template properties
 debian-12-minimal-vault-properties:
@@ -44,13 +13,39 @@ debian-12-minimal-vault-properties:
     - maxmem: 500    
     - include_in_backups: true
     - require:
-      - cmd: debian-12-minimal-vault-packages
+      - qvm: debian-12-minimal-vault-clone
 
-# Shutdown template after configuration
-debian-12-minimal-vault-shutdown:
-  qvm.shutdown:
-    - name: debian-12-minimal-vault
+{% else %}
+# Template configuration via disp-mgmt
+
+# Configure passwordless sudo
+configure-passwordless-sudo:
+  file.managed:
+    - name: /etc/sudoers.d/qubes
+    - contents: "user ALL=(ALL) NOPASSWD: ALL"
+    - mode: 440
+    - user: root
+    - group: root
+
+# Update package lists
+update-packages:
+  cmd.run:
+    - name: apt-get update
+    - runas: root
     - require:
-      - qvm: debian-12-minimal-vault-properties
+      - file: configure-passwordless-sudo
+
+# Install essential packages for vault-qubes
+install-vault-packages:
+  pkg.installed:
+    - pkgs:
+      - keepassxc
+      - gnupg2
+      - qubes-gpg-split
+      - pinentry-gtk2
+      - xclip
+      - pwgen
+    - require:
+      - cmd: update-packages
 
 {% endif %}
