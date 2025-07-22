@@ -19,5 +19,5 @@ create-personal-thunderbird-qvm:
             - shutdown_timeout: 60
         - features:
             - set:
-                - menu-items: brave-browser.desktop thunderbird.desktop
+                - menu-items: brave-browser.desktop net.thunderbird.Thunderbird.desktop
 {% endif %}
