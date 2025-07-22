@@ -1,44 +1,73 @@
 {% if grains['id'] == 'dom0' %}
-# Clone template for personal
-fedora-41-xfce-personal-clone:
+clone-template:
   qvm.clone:
     - name: fedora-41-xfce-personal
     - source: fedora-41-xfce
-  
-{% elif grains['id'] == 'fedora-41-xfce-personal' %}
-# Refresh package cache
-fedora-41-xfce-personal-refresh:
-  cmd.run:
-    - name: dnf makecache
-
-# Update template packages
-fedora-41-xfce-personal-update:
-  cmd.run:
-    - name: dnf upgrade -y
+configure-template:
+  qvm.prefs:
+    - name: fedora-41-xfce-personal
+    - label: black
+    - memory: 500
+    - maxmem: 4096
+    - vcpus: 2
     - require:
-      - cmd: fedora-41-xfce-personal-refresh
-
-# Import Microsoft GPG key
-import-microsoft-gpg-key:
-  cmd.run:
-    - name: rpm --import https://packages.microsoft.com/keys/microsoft.asc
-
-# Create Visual Studio Code repository file
-vscode-repo:
+      - qvm: clone-template
+{% else %}
+# Keys von dom0 zu Template kopieren
+copy-microsoft-key:
   file.managed:
-    - name: /etc/yum.repos.d/vscode.repo
-    - contents: |
-        [code]
-        name=Visual Studio Code
-        baseurl=https://packages.microsoft.com/yumrepos/vscode
-        enabled=1
-        autorefresh=1
-        type=rpm-md
-        gpgcheck=1
-        gpgkey=https://packages.microsoft.com/keys/microsoft.asc
-    - mode: 644
-    - user: root
-    - group: root
+    - name: /tmp/microsoft.asc
+    - source: salt://microsoft.asc
+
+copy-brave-key:
+  file.managed:
+    - name: /tmp/brave.asc
+    - source: salt://brave.asc
+
+vscode-key:
+  cmd.run:
+    - name: rpm --import /tmp/microsoft.asc
+    - unless: rpm -qi gpg-pubkey-eb3e94ad-*
     - require:
-      - cmd: import-microsoft-gpg-key
+      - file: copy-microsoft-key
+
+brave-key:
+  cmd.run:
+    - name: rpm --import /tmp/brave.asc
+    - unless: rpm -qi gpg-pubkey-* | grep -q "Brave Software"
+    - require:
+      - file: copy-brave-key
+
+vscode-repo:
+  pkgrepo.managed:
+    - name: code
+    - humanname: Visual Studio Code
+    - baseurl: https://packages.microsoft.com/yumrepos/vscode
+    - gpgcheck: 1
+    - gpgkey: file:///tmp/microsoft.asc
+    - require:
+      - cmd: vscode-key
+
+brave-repo:
+  pkgrepo.managed:
+    - name: brave-browser
+    - humanname: Brave Browser
+    - baseurl: https://brave-browser-rpm-release.s3.brave.com/$basearch
+    - gpgcheck: 1
+    - gpgkey: file:///tmp/brave.asc
+    - require:
+      - cmd: brave-key
+
+install-software:
+  pkg.installed:
+    - pkgs:
+      - code
+      - brave-browser
+      - git
+      - python3
+      - python3-pip
+      - make
+    - require:
+      - pkgrepo: vscode-repo
+      - pkgrepo: brave-repo
 {% endif %}
